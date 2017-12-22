@@ -1,0 +1,113 @@
+﻿@model Test_Questions.Models.VerifyIdentityViewModel
+
+@{
+    ViewBag.Title = "Index";
+}
+
+<h2>Index</h2>
+
+
+
+@using (Html.BeginForm())
+{
+    @Html.AntiForgeryToken()
+    <div class="form-horizontal">
+        @Html.ValidationSummary(true)
+        @Html.HiddenFor(m => m.TransactionKey)
+        @Html.HiddenFor(m => m.InteractiveQueryId)
+        @for (int q = 0; q < Model.Questions.Count; q++)
+        {
+            <div class="form-group question">
+                <strong>@Html.DisplayFor(m => Model.Questions[q].Question)</strong>
+                <ul>
+                    @for (int a = 0; a < Model.Questions[q].Answers.Count; a++)
+                    {
+                        <li>
+                            <label>
+                                @Html.RadioButtonFor(m => Model.Questions[q].AnswerId, Model.Questions[q].Answers[a].AnswerId, new { id = "rb" + q + "_" + a }) @Html.DisplayFor(m => Model.Questions[q].Answers[a].Answer)
+                            </label>
+                            @if (ViewBag.DevelopmentMode == "oon")
+                            {
+                                <strong>
+                                    @(Model.Questions[q].Answers[a].CorrectAnswer ? " - Choose Me" : "")
+                                </strong>
+                                @Html.HiddenFor(m => Model.Questions[q].Answers[a].CorrectAnswer)
+                            }
+                            @Html.HiddenFor(m => Model.Questions[q].Answers[a].AnswerId)
+                            @Html.HiddenFor(m => Model.Questions[q].Answers[a].Answer)
+                        </li>
+                    }
+                </ul>
+                @Html.ValidationMessageFor(m => Model.Questions[q].AnswerId)
+            </div>
+            @Html.HiddenFor(m => Model.Questions[q].QuestionId)
+            @Html.HiddenFor(m => Model.Questions[q].Question)
+        }
+        <hr>
+        <div id="nextbtn" class="trackEvent" data-evtcategory="VerifyQuestion" data-evtaction="Step1">
+        </div>
+        <div id="submitbtn" class="form-group form-buttonGroup clearfix">
+            <button type="submit" class="btn btn-primary pull-right trackEvent">Submits</button>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jsval")
+
+    <script type="text/javascript">
+        var questionCount = 0,
+            currentQuestionIndex = 0,
+            $currentQuestion = null,
+            $nextbtn = $("#nextbtn");
+
+        function nextQuestion(e) {
+            e.preventDefault();
+
+            // hide validation message
+            $currentQuestion.find('.field-validation-valid').hide();
+
+            // check question if selected
+            if ($currentQuestion.find('input:radio:checked').val() !== undefined) {
+                toggleQuestions(++currentQuestionIndex);
+                $nextbtn.data("evtaction", "Step" + currentQuestionIndex);
+                if (currentQuestionIndex == questionCount - 1) {
+                    $('#submitbtn').show();
+                    $nextbtn.hide();
+                }
+            } else {
+                // show validation message
+                $currentQuestion.find('.field-validation-valid').addClass('field-validation-error').text('Plese Choose an answer.').show();
+            }
+        }
+
+        function toggleQuestions(index) {
+            $('.question').each(function (idx) {
+                if (idx != index) {
+                    $(this).hide();
+                } else {
+                    $(this).show();
+                    $currentQuestion = $(this);
+                }
+
+                questionCount = idx + 1;
+            });
+        }
+
+        $(function () {
+            toggleQuestions(0);
+
+            $('#submitbtn').hide();
+
+            var next = $('<button>', {
+                text: 'Submit',
+                'class': 'btn btn-primary pull-right',
+                click: nextQuestion
+            })
+
+            $nextbtn.append(next).addClass('form-group form-buttonGroup');
+
+        })
+    </script>
+}
+
